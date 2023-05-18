@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
+import static com.sandvichs.jrugio.model.game.Game.getPlayer;
 import static com.sandvichs.jrugio.model.game.Game.killGame;
 
 public class World {
@@ -29,6 +30,7 @@ public class World {
     private List<Actor> actors;  // list of actors
     private ArrayList<String> pendingLog; // pending console messages
     private ArrayList<Actor> pendingGarb; // pending actors to remove
+    private ArrayList<Actor> pendingAdd; // pending actors to add
 
     public World(Actor player, int w, int h, Integer seed) {
 //        this.rng = new Random(34972595);  // seed for testing
@@ -38,6 +40,7 @@ public class World {
         this.map = new GameMap(w, h);
         this.pendingLog = new ArrayList<>();
         this.pendingGarb = new ArrayList<>();
+        this.pendingAdd = new ArrayList<>();
     }
 
     // EFFECTS: getter for UNSEEN
@@ -56,7 +59,7 @@ public class World {
     // EFFECTS: add an actor to the world
     public void add(Actor a) {
         a.setWorld(this);
-        this.actors.add(a);
+        this.pendingAdd.add(a);
     }
 
     public void initBasicWorld() {
@@ -128,12 +131,14 @@ public class World {
 
     // EFFECTS: Removes the actor from the world by queueing it for deletion
     public void removeActorFromActors(Actor a) {
-        if (a.isPlayer()) {
-            pushConsole(String.format("Good game!"));
-            return;
-        }
         pushConsole(String.format("Removing %s from %d, %d", a.getLabel(), a.getX(), a.getY()));
         this.pendingGarb.add(a);
+
+        // send end game message for player
+        if (a.isPlayer()) {
+            pushConsole("Good game!");
+            getPlayer().setGlyph('%');
+        }
     }
 
     public void pushConsole(String newLog) {
@@ -151,7 +156,7 @@ public class World {
             turns = turns;
         }
         doPlayerTurn(player, event);
-        cleanActors();
+        processPendingActorOperations();
         try {
             doActorTurns();
         } catch (ActorIsDeadException e) {
@@ -185,14 +190,17 @@ public class World {
         }
     }
 
-    public void cleanActors() {
-        List<Actor> cleanedActorList = new ArrayList<>(this.actors);
+    public void processPendingActorOperations() {
+        // set new actor list with pending additions
+        List<Actor> cleanedActorList = new ArrayList<>(this.pendingAdd);
+        cleanedActorList.addAll(this.actors);
         for (Actor a : this.actors) {
             if (pendingGarb.contains(a)) {
                 cleanedActorList.remove(a);
             }
         }
         this.pendingGarb = new ArrayList<>();
+        this.pendingAdd = new ArrayList<>();
         this.actors = cleanedActorList;
     }
 
