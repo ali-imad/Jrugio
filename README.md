@@ -6,6 +6,8 @@ migration to Swing.
 
 ## Features implemented
 - You can move and attack things!
+- There's field of view and fog of war
+- They can track you down and kill you (with A* pathfinding)
 - Every world is procedurally generated
 - You can level up!
 
