@@ -216,8 +216,6 @@ public abstract class Actor extends Entity {
     private int kill() {
         this.alive = false;
         this.blocking = false;
-        this.world.removeActorFromActors(this);
-        this.getWorld().add(getCorpse());
         return this.getExp();
     }
 
@@ -264,10 +262,14 @@ public abstract class Actor extends Entity {
 
     // MODIFIES: this
     // EFFECTS: This method defines actions that should be done every game tick
-    public void doTurn() {
-        // actors do nothing by default
+    public void doTurn() throws ActorIsDeadException {
+        if (this.alive) {
+            // actors do nothing by default
 //        System.out.println("called");
-        this.recalculateFOV();
+            this.recalculateFOV();
+        } else {
+            throw new ActorIsDeadException();
+        }
     }
 
     public ArrayList<Coord> getPath() {

@@ -3,6 +3,7 @@ package com.sandvichs.jrugio.model.game.world.entity.actor;
 import com.sandvichs.jrugio.model.utils.ColourPalette;
 
 import static com.googlecode.lanterna.TextColor.ANSI.BLACK;
+import static com.sandvichs.jrugio.model.game.Game.killGame;
 
 
 public class Player extends Actor {
@@ -24,7 +25,11 @@ public class Player extends Actor {
     @Override
     public void doTurn() {
         getWorld().pushConsole("Doing player turn.");
-        super.doTurn();
+        try {
+            super.doTurn();
+        } catch (ActorIsDeadException e) {
+            killGame();
+        }
         // TODO: handle input here
         getWorld().pushConsole(String.format("Pos: (%d %d)", this.getX(), this.getY()));
     }

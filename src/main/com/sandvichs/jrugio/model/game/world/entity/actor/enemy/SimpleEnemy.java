@@ -3,6 +3,7 @@ package com.sandvichs.jrugio.model.game.world.entity.actor.enemy;
 import com.googlecode.lanterna.TextColor;
 import com.sandvichs.jrugio.model.game.Game;
 import com.sandvichs.jrugio.model.game.world.entity.actor.Actor;
+import com.sandvichs.jrugio.model.game.world.entity.actor.ActorIsDeadException;
 import squidpony.squidmath.Coord;
 
 /*
@@ -17,7 +18,11 @@ public abstract class SimpleEnemy extends Actor {
 
     @Override
     public void doTurn() {
-        super.doTurn();
+        try {
+            super.doTurn();
+        } catch (ActorIsDeadException e) {
+            return;
+        }
 
         if (this.isVisible(Game.getPlayer())) {
 //            getWorld().pushConsole(this.getLabel() +

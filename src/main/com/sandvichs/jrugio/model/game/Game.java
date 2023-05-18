@@ -151,7 +151,7 @@ public class Game {
         }
     }
 
-    private static void killGame() {
+    public static void killGame() {
         gameIsRunning = false;
     }
 

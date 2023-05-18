@@ -2,6 +2,7 @@ package com.sandvichs.jrugio.model.game.world;
 
 import com.sandvichs.jrugio.model.game.GameEvent;
 import com.sandvichs.jrugio.model.game.world.entity.actor.Actor;
+import com.sandvichs.jrugio.model.game.world.entity.actor.ActorIsDeadException;
 import com.sandvichs.jrugio.model.game.world.entity.actor.Player;
 import com.sandvichs.jrugio.model.game.world.entity.actor.enemy.Orc;
 import com.sandvichs.jrugio.model.game.world.map.GameMap;
@@ -13,6 +14,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
+
+import static com.sandvichs.jrugio.model.game.Game.killGame;
 
 public class World {
 
@@ -125,6 +128,10 @@ public class World {
 
     // EFFECTS: Removes the actor from the world by queueing it for deletion
     public void removeActorFromActors(Actor a) {
+        if (a.isPlayer()) {
+            pushConsole(String.format("Good game!"));
+            return;
+        }
         pushConsole(String.format("Removing %s from %d, %d", a.getLabel(), a.getX(), a.getY()));
         this.pendingGarb.add(a);
     }
@@ -145,7 +152,11 @@ public class World {
         }
         doPlayerTurn(player, event);
         cleanActors();
-        doActorTurns();
+        try {
+            doActorTurns();
+        } catch (ActorIsDeadException e) {
+            throw new RuntimeException(e);
+        }
 //        updateTiles();
         player.recalculateFOV();
     }
@@ -163,7 +174,7 @@ public class World {
         }
     }
 
-    public void doActorTurns() {
+    public void doActorTurns() throws ActorIsDeadException {
         for (Actor a : this.actors) {
             if (a.isPlayer()) {
                 continue;
@@ -203,7 +214,11 @@ public class World {
                 moveActorAndCollide(player, -1, 0);
                 break;
         }
-        player.doTurn();
+        try {
+            player.doTurn();
+        } catch (ActorIsDeadException e) {
+            killGame();
+        }
 //        player.recalculateFOV();
     }
 
@@ -251,5 +266,4 @@ public class World {
         tileToReach.setStanding(actor);
 //        tileToReach.setWalkable(!actor.isBlocking());
     }
-
 }
