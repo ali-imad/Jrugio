@@ -178,6 +178,10 @@ public abstract class Actor extends Entity {
         return label;
     }
 
+    public void heal() {
+        this.stats.setHp(this.getMaxHP());
+    }
+
     // EFFECTS: Attack whatever is standing on the tile
     public void attack(Tile t) {
         Actor toAttack = t.getStanding();

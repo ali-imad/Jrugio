@@ -36,6 +36,7 @@ public class GameWindow {
     private static ScreenView statusView;
     private static StatusBar healthBar;
     private static StatusBar manaBar;
+    private static StatusBar xpBar;
     private final Screen screen;
     private final TerminalSize size;
     // view for the viewport mapped to the game map
@@ -65,8 +66,10 @@ public class GameWindow {
         // *2 because padding is on both sides
         game.buildConsole(consoleView.height - CONSOLE_PAD_Y * 2, consoleView.width - CONSOLE_PAD_X * 2);
 
-        healthBar = new StatusBar(game.getPlayer().getMaxHP(), ANSI.RED, "Health");
-        manaBar = new StatusBar(game.getPlayer().getMaxMP(), ANSI.YELLOW, "Rage");
+        healthBar = new StatusBar(Game.getPlayer().getMaxHP(), ANSI.RED, "Health");
+        manaBar = new StatusBar(Game.getPlayer().getMaxMP(), ANSI.YELLOW, "Rage");
+        xpBar = new StatusBar(Game.getPlayer().getExpToLevel(), ColourPalette.SLATE_WHITE, "XP");
+        xpBar.setCurrentValue(0);
     }
 
 
@@ -127,13 +130,13 @@ public class GameWindow {
     // EFFECTS: Recalculate where the gameView should render the game map and the player based on the player position
     private void clampViewToActor() {
         // clamp to the left
-        int minViewX = max(0, game.getPlayer().getX() - this.gameView.width / 2);
+        int minViewX = max(0, Game.getPlayer().getX() - this.gameView.width / 2);
         // clamp that result to the right (it will preserve the old one if its being used)
         int newViewX = min(game.getWorld().getMap().getWidth() - this.gameView.width, minViewX);
 
         // do the same thing to y
         // clamp to the top if needed
-        int minViewY = max(0, game.getPlayer().getY() - this.gameView.height / 2);
+        int minViewY = max(0, Game.getPlayer().getY() - this.gameView.height / 2);
         // clamp that result to the bottom
         int newViewY = min(game.getWorld().getMap().getHeight() - this.gameView.height, minViewY);
         this.gameView = new ScreenView(newViewX, newViewY, this.gameView.width, this.gameView.height);
@@ -168,26 +171,36 @@ public class GameWindow {
         this.updateStatusBars();
         final int WINDOW_PAD_Y = 2;
         final int WINDOW_PAD_X = 2;
-        final int LABEL_PAD_Y = 2;
+        final int LABEL_PAD_Y = 0;
         final int LABEL_PAD_X = 0;
-        final int Y_SPACING_BETWEEN = 4;
         final char BAR_CHAR = '#';
 
         int startX = statusView.getX1() + WINDOW_PAD_X;
         int maxWidth = statusView.getX2() - startX - WINDOW_PAD_X;
-        int startY = statusView.getY1() + WINDOW_PAD_Y;
+        int startY = statusView.getY1() + WINDOW_PAD_Y + 1;
 //        int endY = statusView.getY2() - WINDOW_PAD_Y;
 
         StatusBar[] bars = new StatusBar[]{
                 healthBar,
                 manaBar,
+                xpBar
         };
 
 
         // render gold title and label
-        renderPlayerGoldAmount(startX,
-                renderBarsWithLabels(bars, BAR_CHAR, Y_SPACING_BETWEEN,
-                        maxWidth, LABEL_PAD_X, LABEL_PAD_Y, startX, startY));
+//        int y0 = renderPlayerGoldAmount(startX,
+        if (Game.getPlayer().levelUp()) {
+            // render the label
+            TextGraphics label = screen.newTextGraphics();
+            TerminalPosition labelPos = new TerminalPosition(startX,
+                    renderBarsWithLabels(bars, BAR_CHAR, maxWidth, LABEL_PAD_X, LABEL_PAD_Y, startX, startY));
+            label.setForegroundColor(ColourPalette.SAND);
+            label.putString(labelPos, "Levelled up!");
+            updateStatusBars();
+        } else {
+            renderPlayerGoldAmount(startX,
+                    renderBarsWithLabels(bars, BAR_CHAR, maxWidth, LABEL_PAD_X, LABEL_PAD_Y, startX, startY));
+        }
     }
 
     // EFFECTS: iterate through all the Tiles in the tilemap that are in view of the GameWindow (based on this.gameView)
@@ -203,13 +216,13 @@ public class GameWindow {
                 int terminalY = j - this.gameView.y + MAP_PAD_Y;
 
                 Tile tile;
-                if (game.getPlayer().isSeen(i, j)) {
+                if (Game.getPlayer().isSeen(i, j)) {
                     tile = tilemap.getTile(i, j);
                 } else {
                     tile = World.unseenTile();
                 }
 
-                if (game.getPlayer().isVisible(i, j)) {
+                if (Game.getPlayer().isVisible(i, j)) {
                     screen.setCharacter(new TerminalPosition(terminalX, terminalY), tile.toVisibleTC());
                 } else {
                     screen.setCharacter(new TerminalPosition(terminalX, terminalY), tile.toHiddenTC());
@@ -231,7 +244,7 @@ public class GameWindow {
             TerminalPosition pos = new TerminalPosition(a.getX(), a.getY());
             int actorX = pos.getColumn();
             int actorY = pos.getRow();
-            if (game.getPlayer().isVisible(a)) {
+            if (Game.getPlayer().isVisible(a)) {
                 if (gameView.x <= actorX && actorX <= gameView.x + gameView.width) {
                     if (gameView.y <= actorY && actorY <= gameView.y + gameView.height) {
                         int terminalX = actorX - this.gameView.x + MAP_PAD_X;
@@ -248,36 +261,39 @@ public class GameWindow {
     // EFFECTS: Updates the status bars with appropriate values based on player stats
     private void updateStatusBars() {
         // set health
-        healthBar.setMaxValue(game.getPlayer().getMaxHP());
-        healthBar.setCurrentValue(game.getPlayer().getHP());
+        healthBar.setMaxValue(Game.getPlayer().getMaxHP());
+        healthBar.setCurrentValue(Game.getPlayer().getHP());
+        healthBar.setLabel(String.format("HP: %d / %d", healthBar.getCurrentValue(), healthBar.getMaxValue()));
 
         // set mana
-        manaBar.setMaxValue(game.getPlayer().getMaxMP());
-        manaBar.setCurrentValue(game.getPlayer().getMP());
-    }
+        manaBar.setMaxValue(Game.getPlayer().getMaxMP());
+        manaBar.setCurrentValue(Game.getPlayer().getMP());
+        manaBar.setLabel(String.format("MP: %d / %d", manaBar.getCurrentValue(), manaBar.getMaxValue()));
 
-    private void renderPlayerGoldAmount(int x0, int y0) {
-        // render the label
-        TextGraphics label = screen.newTextGraphics();
-        TerminalPosition labelPos = new TerminalPosition(x0, y0);
-
-        label.setForegroundColor(ColourPalette.SAND);
-        label.putString(labelPos, String.format("Gold: %d", game.getPlayer().getGold()));
+        // set xp bar
+        xpBar.setMaxValue(Game.getPlayer().getExpToLevel());
+        xpBar.setCurrentValue(Game.getPlayer().getExp());
+        xpBar.setLabel(String.format("XP: %d / %d <Level %d>", xpBar.getCurrentValue(),
+                xpBar.getMaxValue(), Game.getPlayer().getLevel()));
     }
 
     // EFFECTS: Pad, label and render status bars using their filling character and appropriate colors.
     //          Returns the next y position to draw at
-    private int renderBarsWithLabels(StatusBar[] bars, char c, int btwn, int w, int padX, int padY, int x0, int y0) {
+    private int renderBarsWithLabels(StatusBar[] bars, char c, int w, int padX, int padY, int x0, int y0) {
+        int btwn = 3;
         for (StatusBar b : bars) {
+            // set cursor position
             int x = x0;
+
             // render the label
             TextGraphics label = screen.newTextGraphics();
             TerminalPosition labelPos = new TerminalPosition(x, y0);
 
             label.setForegroundColor(b.getColor());
 //            label.putString(labelPos, b.getLabel());
-            label.putString(labelPos, String.format("%s: %d / %d", b.getLabel(), b.getCurrentValue(), b.getMaxValue()));
-
+            label.putString(labelPos, b.getLabel());
+            // go to next line
+            y0++;
             x += padX;
             y0 += padY;
 
@@ -286,12 +302,23 @@ public class GameWindow {
 
             // render the bar
             for (int i = x; i < endX; i++) {
-                TextCharacter tc = new TextCharacter(c, b.getColor(), ANSI.BLACK);
+                TextCharacter tc = TextCharacter.fromCharacter(c, b.getColor(), ANSI.BLACK)[0];
                 screen.setCharacter(new TerminalPosition(i, y0), tc);
             }
 
+            // move btwn lines to next bar rendering pos
             y0 += btwn;
         }
         return y0;
+    }
+
+    private int renderPlayerGoldAmount(int x0, int y0) {
+        // render the label
+        TextGraphics label = screen.newTextGraphics();
+        TerminalPosition labelPos = new TerminalPosition(x0, y0);
+
+        label.setForegroundColor(ColourPalette.SAND);
+        label.putString(labelPos, String.format("Gold: %d", Game.getPlayer().getGold()));
+        return ++y0;
     }
 }

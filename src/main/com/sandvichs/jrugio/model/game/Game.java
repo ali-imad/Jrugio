@@ -3,7 +3,6 @@ package com.sandvichs.jrugio.model.game;
 import com.googlecode.lanterna.input.KeyType;
 import com.sandvichs.jrugio.model.game.world.World;
 import com.sandvichs.jrugio.model.game.world.WorldBuilder;
-import com.sandvichs.jrugio.model.game.world.entity.actor.Actor;
 import com.sandvichs.jrugio.model.game.world.entity.actor.Player;
 
 import java.util.Random;
@@ -65,7 +64,7 @@ public class Game {
         }
     }
 
-    public static Actor getPlayer() {
+    public static Player getPlayer() {
         return player;
     }
 

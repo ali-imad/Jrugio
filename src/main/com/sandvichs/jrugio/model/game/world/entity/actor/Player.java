@@ -19,7 +19,7 @@ public class Player extends Actor {
     public Player(int x, int y) {
         super('@', "Player", x, y, ColourPalette.AQUA, BLACK,
                 INITIAL_MAX_HP, INITIAL_MAX_MP, INITIAL_ATK, INITIAL_DEF, 15);
-        this.level = 1;
+        levelUp();
     }
 
     @Override
@@ -45,6 +45,7 @@ public class Player extends Actor {
         }
         // do the level up
         this.stats.setMhp(this.stats.getMhp() + this.level * 8);
+        heal();
 
         // set new XP target
         int leftover = getExp() - expToLevel;

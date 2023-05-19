@@ -6,6 +6,11 @@ public class StatusBar {
     private int currentValue;
     private int maxValue;
     private TextColor color;
+
+    public void setLabel(String label) {
+        this.label = label;
+    }
+
     private String label;
 
     public StatusBar(int max, TextColor color, String label) {
